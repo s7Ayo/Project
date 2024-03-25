@@ -11,11 +11,19 @@ public class CentralServer {
     private Socket clientSocket;
     private PrintWriter out;
     private BufferedReader in;
+    private Socket marketingSocket;
+    private PrintWriter marketingOut;
+    private BufferedReader marketingIn;
 
     public void start(int port) {
         try {
             serverSocket = new ServerSocket(port);
             System.out.println("Central Server started on port " + port);
+
+            // Connect to the Marketing Department Server
+            marketingSocket = new Socket("localhost", 6667);
+            marketingOut = new PrintWriter(marketingSocket.getOutputStream(), true);
+            marketingIn = new BufferedReader(new InputStreamReader(marketingSocket.getInputStream()));
 
             // Continuously listen for client connections
             while (true) {
@@ -28,13 +36,15 @@ public class CentralServer {
                 String inputLine;
                 while ((inputLine = in.readLine()) != null) {
                     System.out.println("Received project instance from client: " + inputLine);
+                    // Forward project instance to Marketing Department Server
+                    marketingOut.println(inputLine);
+
+                    // Await approval decision from Marketing Department
+                    String decision = marketingIn.readLine();
+                    System.out.println("Received decision from Marketing Department: " + decision);
                     
-                    // Simulate the review process by the Marketing Department
-                    if (processProjectInstance(inputLine)) {
-                        out.println("Project instance approved");
-                    } else {
-                        out.println("Project instance rejected");
-                    }
+                    // Relay decision back to client
+                    out.println(decision);
                 }
 
                 in.close();
@@ -46,22 +56,19 @@ public class CentralServer {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            stop(); // Clean up resources
+            stop();
         }
-    }
-
-    private boolean processProjectInstance(String projectDetails) {
-        // Simulate processing the project instance and making an approval decision
-        // This is a simplified example; in a real application, this could involve complex logic
-        System.out.println("Processing project instance: " + projectDetails);
-        
-        // For simplicity, let's just approve all project instances
-        return true;
     }
 
     public void stop() {
         try {
-            serverSocket.close();
+            if (marketingIn != null) marketingIn.close();
+            if (marketingOut != null) marketingOut.close();
+            if (marketingSocket != null) marketingSocket.close();
+            if (in != null) in.close();
+            if (out != null) out.close();
+            if (clientSocket != null) clientSocket.close();
+            if (serverSocket != null) serverSocket.close();
             System.out.println("Central Server stopped");
         } catch (Exception e) {
             e.printStackTrace();
@@ -70,6 +77,6 @@ public class CentralServer {
 
     public static void main(String[] args) {
         CentralServer server = new CentralServer();
-        server.start(6666); // Start the server on port 6666
+        server.start(6666);
     }
 }
