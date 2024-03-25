@@ -5,6 +5,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HashMap;
 import java.util.Scanner; // Import Scanner for reading from the console
 
 public class MarketingDepartmentServer {
@@ -12,6 +13,11 @@ public class MarketingDepartmentServer {
     private Socket centralServerSocket;
     private PrintWriter out;
     private BufferedReader in;
+    private HashMap<String, String> projectApprovalStatus; // HashMap to store project approval status
+
+    public MarketingDepartmentServer() {
+        projectApprovalStatus = new HashMap<>();
+    }
 
     public void start(int port) {
         try {
@@ -28,13 +34,18 @@ public class MarketingDepartmentServer {
             while ((projectInstanceDetails = in.readLine()) != null) {
                 System.out.println("Received project instance from Central Server: " + projectInstanceDetails);
 
+                // Extract project name as key (assuming it's the first item in the project details)
+                String projectName = projectInstanceDetails.split(",")[0].split(":")[1].trim();
+
                 // Prompt for approval in the terminal
                 boolean isApproved = promptForApproval(projectInstanceDetails);
                 
                 if (isApproved) {
-                    out.println("Project instance approved: " + projectInstanceDetails);
+                    projectApprovalStatus.put(projectName, "Approved");
+                    out.println("Project instance approved: " + projectName);
                 } else {
-                    out.println("Project instance rejected: " + projectInstanceDetails);
+                    projectApprovalStatus.put(projectName, "Rejected");
+                    out.println("Project instance rejected: " + projectName);
                 }
             }
 
@@ -46,11 +57,11 @@ public class MarketingDepartmentServer {
     }
 
     private boolean promptForApproval(String projectDetails) {
-        Scanner scanner = new Scanner(System.in); // Create a Scanner object for reading console input
+        Scanner scanner = new Scanner(System.in);
         System.out.println("Approve project instance? (y/n): " + projectDetails);
 
-        String input = scanner.nextLine(); // Read user input from the console
-        return input.equalsIgnoreCase("y"); // Return true if 'y', false otherwise
+        String input = scanner.nextLine();
+        return input.equalsIgnoreCase("y");
     }
 
     public void stop() {
