@@ -7,11 +7,11 @@ import java.net.Socket;
 import java.util.HashMap;
 
 public class ProcessingCenterServer {
-    private static HashMap<String, String> projectDetailsMap = new HashMap<>();
+    private HashMap<String, String> projectDetailsMap = new HashMap<>();
 
-    public static void main(String[] args) throws Exception {
-        ServerSocket serverSocket = new ServerSocket(6669);
-        System.out.println("Processing Center Server started on port 6669");
+    public void start(int port) throws Exception {
+        ServerSocket serverSocket = new ServerSocket(port);
+        System.out.println("Processing Center Server started on port " + port);
 
         while (true) {
             Socket clientSocket = serverSocket.accept();
@@ -29,8 +29,14 @@ public class ProcessingCenterServer {
         }
     }
 
-    private static String extractProjectName(String projectDetails) {
+    private String extractProjectName(String projectDetails) {
         // Assuming project details start with the project name
-        return projectDetails.split(",")[0];
+        return projectDetails.split(",")[0].trim();
+    }
+
+    // Main method for standalone testing or running
+    public static void main(String[] args) throws Exception {
+        ProcessingCenterServer server = new ProcessingCenterServer();
+        server.start(6669); // Specify the port number for standalone use
     }
 }

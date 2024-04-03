@@ -9,9 +9,9 @@ import java.util.HashMap;
 public class EditingDepartmentServer {
     private static HashMap<String, String> projectDetailsMap = new HashMap<>();
 
-    public static void main(String[] args) throws Exception {
-        ServerSocket serverSocket = new ServerSocket(6668);
-        System.out.println("Editing Department Server started on port 6668");
+    public void start(int port) throws Exception {
+        ServerSocket serverSocket = new ServerSocket(port);
+        System.out.println("Editing Department Server started on port " + port);
 
         while (true) {
             Socket clientSocket = serverSocket.accept();
@@ -32,5 +32,11 @@ public class EditingDepartmentServer {
     private static String extractProjectName(String projectDetails) {
         // Assuming project details start with the project name
         return projectDetails.split(",")[0];
+    }
+
+    // You can keep the main method for standalone testing or running.
+    public static void main(String[] args) throws Exception {
+        EditingDepartmentServer server = new EditingDepartmentServer();
+        server.start(6668); // Specify the port number here if running standalone
     }
 }
