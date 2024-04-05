@@ -6,14 +6,10 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
-import java.util.Scanner; // Import Scanner for reading from the console
 
 public class MarketingDepartmentServer {
     private ServerSocket serverSocket;
-    private Socket centralServerSocket;
-    private PrintWriter out;
-    private BufferedReader in;
-    private HashMap<String, String> projectApprovalStatus; // HashMap to store project approval status
+    private HashMap<String, String> projectApprovalStatus;
 
     public MarketingDepartmentServer() {
         projectApprovalStatus = new HashMap<>();
@@ -24,32 +20,40 @@ public class MarketingDepartmentServer {
             serverSocket = new ServerSocket(port);
             System.out.println("Marketing Department Server started on port " + port);
 
-            centralServerSocket = serverSocket.accept();
-            System.out.println("Central Server connected");
+            while (true) { // Keep the server running indefinitely
+                System.out.println("Waiting for connections...");
+                Socket centralServerSocket = serverSocket.accept();
+                System.out.println("Central Server connected");
 
-            out = new PrintWriter(centralServerSocket.getOutputStream(), true);
-            in = new BufferedReader(new InputStreamReader(centralServerSocket.getInputStream()));
+                try (
+                    PrintWriter out = new PrintWriter(centralServerSocket.getOutputStream(), true);
+                    BufferedReader in = new BufferedReader(new InputStreamReader(centralServerSocket.getInputStream()))
+                ) {
+                    String projectInstanceDetails;
+                    while ((projectInstanceDetails = in.readLine()) != null) {
+                        System.out.println("Received project instance from Central Server: " + projectInstanceDetails);
+                        boolean isApproved = promptForApproval(projectInstanceDetails);
 
-            String projectInstanceDetails;
-            while ((projectInstanceDetails = in.readLine()) != null) {
-                System.out.println("Received project instance from Central Server: " + projectInstanceDetails);
+                        String response = isApproved ? "Project instance approved: " : "Project instance rejected: ";
+                        response += projectInstanceDetails;
+                        out.println(response);
 
-                // Extract project name as key (assuming it's the first item in the project details)
-                String projectName = projectInstanceDetails.split(",")[0].split(":")[1].trim();
-
-                // Prompt for approval in the terminal
-                boolean isApproved = promptForApproval(projectInstanceDetails);
-                
-                if (isApproved) {
-                    projectApprovalStatus.put(projectName, "Approved");
-                    out.println("Project instance approved: " + projectName);
-                } else {
-                    projectApprovalStatus.put(projectName, "Rejected");
-                    out.println("Project instance rejected: " + projectName);
+                        if (isApproved) {
+                            projectApprovalStatus.put(projectInstanceDetails, "Approved");
+                        } else {
+                            projectApprovalStatus.put(projectInstanceDetails, "Rejected");
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error handling central server connection");
+                    e.printStackTrace();
+                } finally {
+                    System.out.println("Central Server connection closed");
+                    // No need to close centralServerSocket here, it's managed by the try-with-resources block
                 }
             }
-
         } catch (Exception e) {
+            System.err.println("Marketing Department Server encountered an error");
             e.printStackTrace();
         } finally {
             stop();
@@ -57,22 +61,24 @@ public class MarketingDepartmentServer {
     }
 
     private boolean promptForApproval(String projectDetails) {
-        try (Scanner scanner = new Scanner(System.in)) {
-            System.out.println("Approve project instance? (y/n): " + projectDetails);
-
-            String input = scanner.nextLine();
-            return input.equalsIgnoreCase("y");
+        String projectName = projectDetails.split(",")[0].split(":")[1].trim();
+        if (projectName.contains("9")) {
+            System.out.println("Project instance rejected: " + projectName + " (contains number 9)");
+            return false;
+        } else {
+            System.out.println("Project instance approved: " + projectName);
+            return true;
         }
     }
 
     public void stop() {
         try {
-            in.close();
-            out.close();
-            centralServerSocket.close();
-            serverSocket.close();
-            System.out.println("Marketing Department Server stopped");
+            if (serverSocket != null && !serverSocket.isClosed()) {
+                serverSocket.close();
+                System.out.println("Marketing Department Server stopped");
+            }
         } catch (Exception e) {
+            System.err.println("Error stopping Marketing Department Server");
             e.printStackTrace();
         }
     }

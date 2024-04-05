@@ -1,9 +1,7 @@
 com/example/itvalley/ClientsAsyncServer.class
 com/example/itvalley/EditingDepartmentServer.class
 com/example/itvalley/MarketingDepartmentServer.class
-com/example/itvalley/CentralServer.class
 com/example/itvalley/ProcessingCenterServer.class
 com/example/itvalley/Client.class
 com/example/itvalley/Main.class
-com/example/itvalley/AccountsDepartmentServer.class
 com/example/itvalley/MainRunner.class
