@@ -1,92 +1,79 @@
 package com.example.itvalley;
 
-
+import javax.jms.Connection;
+import javax.jms.ConnectionFactory;
+import javax.jms.JMSException;
+import javax.jms.MessageConsumer;
+import javax.jms.Session;
+import javax.jms.TextMessage;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import com.rabbitmq.jms.admin.RMQConnectionFactory; // Ensure this import is present
 
-@SuppressWarnings("unused")
 public class CentralServer {
-    private ServerSocket serverSocket;
-    private Socket clientSocket;
-    private PrintWriter out;
-    private BufferedReader in;
-    // Sockets for department servers
-    private Socket editingSocket, processingSocket, accountsSocket;
-    private PrintWriter editingOut, processingOut, accountsOut;
 
-    public void start(int port) {
-        try {
-            serverSocket = new ServerSocket(port);
-            System.out.println("Central Server started on port " + port);
-
-            // Connect to all department servers
-            connectToDepartmentServers();
-
-            // Continuously listen for client connections
-            while (true) {
-                clientSocket = serverSocket.accept();
-                out = new PrintWriter(clientSocket.getOutputStream(), true);
-                in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-
-                String inputLine;
-                while ((inputLine = in.readLine()) != null) {
-                    System.out.println("Received project instance from client: " + inputLine);
-                    // Forward project instance to all department servers
-                    forwardProjectDetails(inputLine);
-                }
-
-                closeClientConnection();
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            stop();
-        }
-    }
-
-    private void connectToDepartmentServers() throws Exception {
-        editingSocket = new Socket("localhost", 6668);
-        processingSocket = new Socket("localhost", 6669);
-        accountsSocket = new Socket("localhost", 6670);
-        editingOut = new PrintWriter(editingSocket.getOutputStream(), true);
-        processingOut = new PrintWriter(processingSocket.getOutputStream(), true);
-        accountsOut = new PrintWriter(accountsSocket.getOutputStream(), true);
-    }
-
-    private void forwardProjectDetails(String details) {
-        editingOut.println(details);
-        processingOut.println(details);
-        accountsOut.println(details);
-    }
-
-    private void closeClientConnection() throws Exception {
-        in.close();
-        out.close();
-        clientSocket.close();
-    }
-
-    public void stop() {
-        try {
-            // Close all connections
-            if (editingOut != null) editingOut.close();
-            if (processingOut != null) processingOut.close();
-            if (accountsOut != null) accountsOut.close();
-            if (editingSocket != null) editingSocket.close();
-            if (processingSocket != null) processingSocket.close();
-            if (accountsSocket != null) accountsSocket.close();
-            if (serverSocket != null) serverSocket.close();
-            System.out.println("Central Server stopped");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+    private static final String QUEUE_NAME = "project_requests";
+    private static final int SOCKET_PORT = 6666; // Port for synchronous socket connections
 
     public static void main(String[] args) {
-        CentralServer server = new CentralServer();
-        server.start(6666);
+        new Thread(CentralServer::startSocketServer).start(); // Start synchronous handling in a new thread
+        startRabbitMQConsumer(); // Start asynchronous handling
+    }
+
+    private static void startSocketServer() {
+        try (ServerSocket serverSocket = new ServerSocket(SOCKET_PORT)) {
+            System.out.println("Central Server Socket Listening on port: " + SOCKET_PORT);
+
+            while (true) {
+                try (Socket clientSocket = serverSocket.accept();
+                     PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+                     BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
+
+                    String inputLine;
+                    while ((inputLine = in.readLine()) != null) {
+                        System.out.println("Received synchronous project proposal: " + inputLine);
+                        // Process synchronous project proposal here
+                        out.println("Project proposal received and processed");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void startRabbitMQConsumer() {
+        try {
+            ConnectionFactory connectionFactory = (ConnectionFactory) new RMQConnectionFactory();
+            Connection connection = connectionFactory.createConnection();
+            Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+
+            MessageConsumer consumer = session.createConsumer(session.createQueue(QUEUE_NAME));
+            System.out.println("Central Server RabbitMQ Consumer Listening");
+
+            consumer.setMessageListener(message -> {
+                if (message instanceof TextMessage) {
+                    TextMessage textMessage = (TextMessage) message;
+                    try {
+                        System.out.println("Received asynchronous project proposal: " + textMessage.getText());
+                        // Process asynchronous project proposal here
+                    } catch (JMSException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+
+            connection.start(); // Start the connection to begin message consumption
+            // Keep the consumer running
+            Thread.sleep(Long.MAX_VALUE);
+        } catch (JMSException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            e.printStackTrace();
+        }
     }
 }

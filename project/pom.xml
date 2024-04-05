@@ -14,19 +14,28 @@
     </properties>
 
     <dependencies>
-        <!-- RabbitMQ JMS Client -->
+
         <dependency>
             <groupId>com.rabbitmq.jms</groupId>
             <artifactId>rabbitmq-jms</artifactId>
             <version>3.2.0</version>
         </dependency>
 
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.1.0-alpha1</version>
+        </dependency>
+
+        <!-- RabbitMQ JMS Client -->
+        
         <!-- JMS API -->
         <dependency>
             <groupId>javax.jms</groupId>
             <artifactId>javax.jms-api</artifactId>
             <version>2.0.1</version>
-        </dependency>
+        </dependency> 
 
         <!-- Spring JMS for integration with Spring framework -->
         <dependency>

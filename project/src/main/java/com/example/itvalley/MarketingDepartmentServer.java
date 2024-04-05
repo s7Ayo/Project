@@ -57,11 +57,12 @@ public class MarketingDepartmentServer {
     }
 
     private boolean promptForApproval(String projectDetails) {
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("Approve project instance? (y/n): " + projectDetails);
+        try (Scanner scanner = new Scanner(System.in)) {
+            System.out.println("Approve project instance? (y/n): " + projectDetails);
 
-        String input = scanner.nextLine();
-        return input.equalsIgnoreCase("y");
+            String input = scanner.nextLine();
+            return input.equalsIgnoreCase("y");
+        }
     }
 
     public void stop() {
