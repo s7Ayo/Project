@@ -1,11 +1,13 @@
 package com.example.itvalley;
 
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+@SuppressWarnings("unused")
 public class CentralServer {
     private ServerSocket serverSocket;
     private Socket clientSocket;
